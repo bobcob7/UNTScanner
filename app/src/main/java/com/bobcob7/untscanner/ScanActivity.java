@@ -96,11 +96,22 @@ public class ScanActivity extends AppCompatActivity {
         filename = filename.concat(".csv");
         FileOutputStream outputStream;
 
-        //File file = new File(this.getFilesDir(), filename);
+        File file = new File(this.getFilesDir(), filename);
+        file.setReadable(true, false);
         String logText = logView.getText().toString();
 
+        //File file = null;
+        //try {
+        //    file = File.createTempFile(filename, null, this.getApplicationContext().getCacheDir());
+        //} catch (IOException e) {
+        //    e.printStackTrace();
+        //}
+
+        //File file = new File(this.getFilesDir(), filename);
+
         try {
-            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+            //outputStream = new FileOutputStream(file);
+            outputStream = openFileOutput(filename, Context.MODE_WORLD_READABLE);
             outputStream.write(logText.getBytes());
             outputStream.close();
         } catch (FileNotFoundException e) {
@@ -109,8 +120,11 @@ public class ScanActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        File file = new File(this.getFilesDir(), filename);
-        file.setReadable(true, false);
+        //file.setReadable(true, false);
+        if(file.canRead())
+        {
+            Log.d(TAG,"Can Read");
+        }
         Uri U = Uri.fromFile(file);
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");

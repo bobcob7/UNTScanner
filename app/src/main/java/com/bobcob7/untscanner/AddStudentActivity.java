@@ -3,8 +3,10 @@ package com.bobcob7.untscanner;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.inputmethodservice.InputMethodService;
 import android.os.Bundle;
 import android.view.View;
+import android.view.inputmethod.InputMethod;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Switch;
@@ -34,9 +36,10 @@ public class AddStudentActivity extends Activity {
 
         nameView.requestFocus();
 
-        ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY);
+        ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, InputMethodManager.HIDE_IMPLICIT_ONLY);
 
         manager = new SQLManager(this);
+        nameView.requestFocusFromTouch();
     }
 
     public void onCancel(View view) {
@@ -51,6 +54,9 @@ public class AddStudentActivity extends Activity {
         output.putExtra("name",nameView.getText().toString());
 
         setResult(0,output);
+
+        //((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(nameView.getWindowToken(), 0);
+        ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, InputMethodManager.HIDE_IMPLICIT_ONLY);
 
         this.finish();
     }

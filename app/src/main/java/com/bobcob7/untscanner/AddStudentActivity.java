@@ -34,7 +34,7 @@ public class AddStudentActivity extends Activity {
 
         nameView.requestFocus();
 
-
+        ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY);
 
         manager = new SQLManager(this);
     }

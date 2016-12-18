@@ -1,6 +1,9 @@
 package com.bobcob7.untscanner;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.content.ContentValues;
@@ -20,11 +23,15 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -76,6 +83,7 @@ public class ScanActivity extends AppCompatActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_reset_db:
+                log("Resetting Database");
                 manager.resetTable(this);
                 return true;
             case R.id.action_export_logs:
@@ -94,33 +102,25 @@ public class ScanActivity extends AppCompatActivity {
     {
         String filename = new Long(calendar.getTimeInMillis()).toString();
         filename = filename.concat(".csv");
-        FileOutputStream outputStream;
-
-        File file = new File(this.getFilesDir(), filename);
-        file.setReadable(true, false);
         String logText = logView.getText().toString();
 
-        //File file = null;
-        //try {
-        //    file = File.createTempFile(filename, null, this.getApplicationContext().getCacheDir());
-        //} catch (IOException e) {
-        //    e.printStackTrace();
-        //}
+        File exportDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "ASME");
 
-        //File file = new File(this.getFilesDir(), filename);
-
-        try {
-            //outputStream = new FileOutputStream(file);
-            outputStream = openFileOutput(filename, Context.MODE_WORLD_READABLE);
-            outputStream.write(logText.getBytes());
-            outputStream.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!exportDir.exists())
+        {
+            exportDir.mkdirs();
         }
 
-        //file.setReadable(true, false);
+        File file = new File(exportDir, filename);
+
+        //Write to file
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.append(logText);
+            log("Exported Logs to: " + filename);
+        } catch (IOException e) {
+            //Handle exception
+        }
+
         if(file.canRead())
         {
             Log.d(TAG,"Can Read");
@@ -134,12 +134,32 @@ public class ScanActivity extends AppCompatActivity {
 
     private void exportDb()
     {
+        String filename = new Long(calendar.getTimeInMillis()).toString();
+        filename = filename.concat(".db.csv");
 
+        File exportDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "ASME");
+
+        if (!exportDir.exists())
+        {
+            exportDir.mkdirs();
+        }
+
+        File file = new File(exportDir, filename);
+        try(FileWriter fileWriter = new FileWriter(file))
+        {
+            String csv = manager.getCSVDatabase();
+            fileWriter.append(csv);
+            log("Exported Database to: " + filename);
+        }
+        catch(Exception sqlEx)
+        {
+            Log.e(TAG, sqlEx.getMessage(), sqlEx);
+        }
     }
 
     private void importDb()
     {
-
+        showFileChooser();
     }
 
     String FSM = "";
@@ -296,14 +316,6 @@ public class ScanActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        int id = data.getIntExtra("id", 0);
-        String name = data.getStringExtra("name");
-        log("ADDED,"+id+","+name+","+calendar.getTime().toString());
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
         //log("ADDED "+studentId+" "+manager.getStudentName(studentId)+" "+calendar.getTime().toString());
@@ -314,7 +326,7 @@ public class ScanActivity extends AppCompatActivity {
         statusView.setBackgroundColor(GREEN);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
-        log("ACCEPT,"+studentId+","+studentName+","+calendar.getTime().toString());
+        log("ACCEPT\t"+studentId+"\t"+studentName+"\t"+calendar.getTime().toString());
     }
 
     private void badStudent(int studentId)
@@ -322,7 +334,78 @@ public class ScanActivity extends AppCompatActivity {
         statusView.setBackgroundColor(RED);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
-        log("DENIED,"+studentId+","+studentName+","+calendar.getTime().toString());
+        log("DENIED\t"+studentId+"\t"+studentName+"\t"+calendar.getTime().toString());
+    }
+
+    private static final int FILE_SELECT_CODE = 1;
+    private static final int NEW_USER_SELECT_CODE = 0;
+
+    private void showFileChooser() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("text/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+
+        try {
+            startActivityForResult(
+                    Intent.createChooser(intent, "Select a File to Upload"),
+                    FILE_SELECT_CODE);
+        } catch (android.content.ActivityNotFoundException ex) {
+            // Potentially direct the user to the Market with a Dialog
+            Toast.makeText(this, "Please install a File Manager.",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case FILE_SELECT_CODE:
+                if (resultCode == RESULT_OK) {
+                    // Get the Uri of the selected file
+                    Uri uri = data.getData();
+                    Log.d(TAG, "File Uri: " + uri.toString());
+                    // Get the path
+                    String path = null;
+                    path = uri.getPath();
+                    Log.d(TAG, "File Path: " + path);
+                    // Get the file instance
+                    File file = new File(path);
+                    // Initiate the upload
+
+                    try {
+                        byte[] buffer = new byte[10000];
+                        InputStream stream = getContentResolver().openInputStream(uri);
+                        stream.read(buffer);
+                        String output = "";
+                        for(int i=0; i<1000; ++i)
+                        {
+                            if(buffer[i] == 0)
+                                break;
+                            output = output.concat( String.valueOf((char)buffer[i]));
+                        }
+
+                        Log.d(TAG, "Read out: " + output);
+
+                        int[] records = manager.importDb(output);
+                        log("Imported file: " + uri.toString());
+                        log("Inserted " + records[0] + " new records and updated " + records[1]);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
+            case NEW_USER_SELECT_CODE:
+                if (resultCode == RESULT_OK) {
+                    int id = data.getIntExtra("id", 0);
+                    String name = data.getStringExtra("name");
+                    log("ADDED,"+id+","+name+","+calendar.getTime().toString());
+                }
+                break;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void log(String msg)
@@ -342,18 +425,22 @@ public class ScanActivity extends AppCompatActivity {
             {
                 case GOOD:
                     Log.d(TAG,id + " is an active member");
+                    goodStudent(id);
                     break;
                 case BAD:
                     Log.d(TAG,id + " is an inactive member");
+                    badStudent(id);
                     break;
                 case UNKNOWN:
                     Log.d(TAG,id + " is not a member");
+                    statusView.setBackgroundColor(WHITE);
                     Intent intent = new Intent(ScanActivity.this, AddStudentActivity.class);
                     intent.putExtra("id",id);
                     ScanActivity.this.startActivity(intent);
                     break;
                 case ERROR:
                     Log.d(TAG, id + " caused an error");
+                    log("ERROR,"+id+","+calendar.getTime().toString());
                     break;
             }
         }
@@ -361,7 +448,7 @@ public class ScanActivity extends AppCompatActivity {
 
     public void onSubmit(View view)
     {
-        String idText = scannerInput.getText().toString();
+        String idText = "11113647";//scannerInput.getText().toString();
         scannerInput.setText("");
         if(idText.length() != 8)
         {

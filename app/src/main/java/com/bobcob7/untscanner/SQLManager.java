@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+
 /**
  * Created by bobco on 12/17/2016.
  */
@@ -119,5 +121,89 @@ public class SQLManager {
             return c.getString(c.getColumnIndex("studentName"));
         }
         return "UNKNOWN";
+    }
+
+    String getCSVDatabase()
+    {
+        Cursor c = db.query(StudentIdSQLHelper.TABLE_NAME,
+                StudentIdSQLHelper.projection,
+                null,
+                null,
+                null,
+                null,
+                "_id DESC"
+        );
+
+        if(c.getCount() > 0) {
+            String output = "_id,studentName,active\n";
+            c.moveToFirst();
+            do {
+                int id = c.getInt(c.getColumnIndex("_id"));
+                String name = c.getString(c.getColumnIndex("studentName"));
+                int active = c.getInt(c.getColumnIndex("active"));
+                output = output.concat(id + "," + name + "," + active + "\n");
+            } while (c.moveToNext());
+            return output;
+        }
+
+        return "";
+    }
+
+    public int[] importDb(String output) {
+        boolean isHeader = true;
+        int width = 0;
+        int[] counts = new int[]{0,0};
+        String[] projection = new String[0];
+        for (String line: output.split("\n")) {
+            if(isHeader)
+            {
+                ArrayList<String> projectionList = new ArrayList<String>();
+                for(String token: line.split(","))
+                {
+                    projectionList.add(token);
+                }
+                width = countChars(line,',');
+                projection = projectionList.toArray(projection);
+                isHeader = false;
+            }
+            else
+            {
+                if(countChars(line,',') != width)
+                {
+                    Log.d(TAG,"Bad Table Entry at \"" + line + "\"");
+                    counts[0] = -1 * counts[0];
+                    counts[1] = -1 * counts[1];
+                    return counts;
+                }
+
+                ContentValues values = new ContentValues();
+
+                int i = 0;
+                for(String token: line.split(","))
+                {
+                    values.put(projection[i++], token);
+                }
+
+                if(db.update(StudentIdSQLHelper.TABLE_NAME, values, "_id = ?", new String[]{values.getAsString("_id")}) < 1)
+                {
+                    db.insert(StudentIdSQLHelper.TABLE_NAME, null, values);
+                    counts[0]++;
+                }
+                else
+                    counts[1]++;
+
+            }
+        }
+        return counts;
+    }
+
+    private int countChars(String line, char s) {
+        int count = 0;
+        for(int i=0; i<line.length(); ++i)
+        {
+            if(line.charAt(i) == s)
+                ++count;
+        }
+        return count;
     }
 }

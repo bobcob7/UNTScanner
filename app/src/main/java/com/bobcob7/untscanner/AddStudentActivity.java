@@ -34,6 +34,8 @@ public class AddStudentActivity extends Activity {
 
         nameView.requestFocus();
 
+
+
         manager = new SQLManager(this);
     }
 
@@ -43,6 +45,13 @@ public class AddStudentActivity extends Activity {
 
     public void onSubmit(View view) {
         manager.addStudent(studentId,nameView.getText().toString(),activeView.isChecked());
+
+        Intent output = new Intent(AddStudentActivity.this, ScanActivity.class);
+        output.putExtra("id",studentId);
+        output.putExtra("name",nameView.getText().toString());
+
+        setResult(0,output);
+
         this.finish();
     }
 }

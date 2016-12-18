@@ -1,6 +1,8 @@
 package com.bobcob7.untscanner;
 
-import android.app.Activity;
+import android.content.Context;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -11,12 +13,18 @@ import android.os.Bundle;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -28,11 +36,12 @@ import static android.graphics.Color.WHITE;
 
 enum VALID_RETURN { GOOD, BAD, UNKNOWN, ERROR };
 
-public class ScanActivity extends Activity {
+public class ScanActivity extends AppCompatActivity {
 
     private static final String TAG = "com.bobcob7.UNTScanner";
     private EditText scannerInput;
     private TextView logView;
+    private Calendar calendar;
     SQLManager manager;
 
     private boolean keyboardListenersAttached = false;
@@ -45,11 +54,78 @@ public class ScanActivity extends Activity {
         scannerInput = (EditText) findViewById(R.id.inputView);
         statusView = (TextView) findViewById(R.id.statusView);
         logView = (TextView) findViewById(R.id.logView);
+
+        ActionBar ab = getSupportActionBar();
+
         manager = new SQLManager(this);
 
-        Calendar calendar = Calendar.getInstance();
+        calendar = Calendar.getInstance();
         Date now = calendar.getTime();
         log("Logs for:\t" + now.toString());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_reset_db:
+                manager.resetTable(this);
+                return true;
+            case R.id.action_export_logs:
+                exportLogs();
+                return true;
+            case R.id.action_export_db:
+                exportDb();
+            case R.id.action_import_db:
+                importDb();
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void exportLogs()
+    {
+        String filename = new Long(calendar.getTimeInMillis()).toString();
+        filename = filename.concat(".csv");
+        FileOutputStream outputStream;
+
+        //File file = new File(this.getFilesDir(), filename);
+        String logText = logView.getText().toString();
+
+        try {
+            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+            outputStream.write(logText.getBytes());
+            outputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        File file = new File(this.getFilesDir(), filename);
+        file.setReadable(true, false);
+        Uri U = Uri.fromFile(file);
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_STREAM, U);
+        startActivity(Intent.createChooser(i,"Email:"));
+    }
+
+    private void exportDb()
+    {
+
+    }
+
+    private void importDb()
+    {
+
     }
 
     String FSM = "";
@@ -193,10 +269,11 @@ public class ScanActivity extends Activity {
                             statusView.setBackgroundColor(WHITE);
                             Intent intent = new Intent(ScanActivity.this, AddStudentActivity.class);
                             intent.putExtra("id",studentId);
-                            ScanActivity.this.startActivity(intent);
+                            startActivityForResult(intent,0);
                             break;
                         case ERROR:
                             Log.d(TAG, studentId + " caused an error");
+                            log("ERROR,"+studentId+","+calendar.getTime().toString());
                             break;
                     }
                 }
@@ -204,11 +281,26 @@ public class ScanActivity extends Activity {
         return super.onKeyDown(keyCode, event);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        int id = data.getIntExtra("id", 0);
+        String name = data.getStringExtra("name");
+        log("ADDED,"+id+","+name+","+calendar.getTime().toString());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //log("ADDED "+studentId+" "+manager.getStudentName(studentId)+" "+calendar.getTime().toString());
+    }
+
     private void goodStudent(int studentId)
     {
         statusView.setBackgroundColor(GREEN);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
+        log("ACCEPT,"+studentId+","+studentName+","+calendar.getTime().toString());
     }
 
     private void badStudent(int studentId)
@@ -216,6 +308,7 @@ public class ScanActivity extends Activity {
         statusView.setBackgroundColor(RED);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
+        log("DENIED,"+studentId+","+studentName+","+calendar.getTime().toString());
     }
 
     private void log(String msg)

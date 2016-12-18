@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.bobcob7.untscanner.ScanActivity">
+    <item
+        android:id="@+id/action_reset_db"
+        android:orderInCategory="100"
+        android:title="Reset Database"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_export_logs"
+        android:orderInCategory="105"
+        android:title="Export Logs"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_export_db"
+        android:orderInCategory="105"
+        android:title="Export Database"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_import_db"
+        android:orderInCategory="105"
+        android:title="Import Database"
+        app:showAsAction="never" />
+</menu>

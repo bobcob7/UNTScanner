@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Created by bobco on 12/17/2016.
@@ -58,6 +59,12 @@ public class SQLManager {
             return VALID_RETURN.BAD;
         }
         return VALID_RETURN.UNKNOWN;
+    }
+
+    public void resetTable(Context context)
+    {
+        db.delete(StudentIdSQLHelper.TABLE_NAME,null,null);
+        Toast.makeText(context,"Reset Table",Toast.LENGTH_SHORT).show();
     }
 
     public void addStudent(int studentId, String studentName)

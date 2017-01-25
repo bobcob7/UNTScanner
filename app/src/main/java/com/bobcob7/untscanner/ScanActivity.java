@@ -2,6 +2,7 @@ package com.bobcob7.untscanner;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.inputmethodservice.InputMethodService;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.app.ActionBar;
@@ -115,7 +116,7 @@ public class ScanActivity extends AppCompatActivity {
 
         //Write to file
         try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.append(logText);
+            fileWriter.append(manager.getCSVLogDatabase());
             log("Exported Logs to: " + filename);
         } catch (IOException e) {
             //Handle exception
@@ -125,6 +126,7 @@ public class ScanActivity extends AppCompatActivity {
         {
             Log.d(TAG,"Can Read");
         }
+
         Uri U = Uri.fromFile(file);
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
@@ -326,7 +328,8 @@ public class ScanActivity extends AppCompatActivity {
         statusView.setBackgroundColor(GREEN);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
-        log("ACCEPT\t"+studentId+"\t"+studentName+"\t"+calendar.getTime().toString());
+        manager.addLog(studentName,studentId,"ACCEPTED");
+        log("ACCEPT\t"+studentId+"\t"+studentName+"\t"+Calendar.getInstance().getTime().toString());
     }
 
     private void badStudent(int studentId)
@@ -334,7 +337,8 @@ public class ScanActivity extends AppCompatActivity {
         statusView.setBackgroundColor(RED);
         String studentName = manager.getStudentName(studentId);
         statusView.setText(studentName);
-        log("DENIED\t"+studentId+"\t"+studentName+"\t"+calendar.getTime().toString());
+        manager.addLog(studentName,studentId,"DENIED");
+        log("DENIED\t"+studentId+"\t"+studentName+"\t"+Calendar.getInstance().getTime().toString());
     }
 
     private static final int FILE_SELECT_CODE = 1;
@@ -440,6 +444,7 @@ public class ScanActivity extends AppCompatActivity {
                     break;
                 case ERROR:
                     Log.d(TAG, id + " caused an error");
+                    manager.addLog("Unknown",id,"ERROR");
                     log("ERROR,"+id+","+calendar.getTime().toString());
                     break;
             }
@@ -452,6 +457,7 @@ public class ScanActivity extends AppCompatActivity {
         scannerInput.setText("");
         if(idText.length() != 8)
         {
+            Toast.makeText(this,"ID isn't 8 characters long",Toast.LENGTH_SHORT).show();
             Log.d(TAG, "ID isn't the right length");
         }
         else

@@ -40,6 +40,7 @@ public class AddStudentActivity extends Activity {
     }
 
     public void onCancel(View view) {
+        manager.addLog("BLANK",studentId,"NEW_BLANK");
         this.finish();
     }
 
@@ -51,6 +52,12 @@ public class AddStudentActivity extends Activity {
         output.putExtra("name",nameView.getText().toString());
 
         setResult(0,output);
+
+        if(activeView.isChecked())
+            manager.addLog(nameView.getText().toString(),studentId,"NEW_ACTIVE");
+        else
+            manager.addLog(nameView.getText().toString(),studentId,"NEW_INACTIVE");
+
 
         this.finish();
     }

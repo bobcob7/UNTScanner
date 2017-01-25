@@ -4,11 +4,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Created by bobco on 12/17/2016.
@@ -21,15 +21,16 @@ public class SQLManager {
     private static final String TAG = "com.bobcob7.UNTScanner";
 
     private SQLiteDatabase db;
-    private StudentIdSQLHelper helper;
+    private SQLHelper helper;
     public boolean isGood;
 
     SQLManager(Context context) {
         isGood = false;
-        helper = new StudentIdSQLHelper(context);
+        helper = new SQLHelper(context);
         db = helper.getWritableDatabase();
-        if (db.isOpen())
+        if (db.isOpen()) {
             isGood = true;
+        }
     }
 
     public VALID_RETURN isValidId(int id) {
@@ -44,8 +45,8 @@ public class SQLManager {
         String sortOrder = "_id DESC";
 
         Cursor c = db.query(
-                StudentIdSQLHelper.TABLE_NAME,                     // The table to query
-                StudentIdSQLHelper.projection,                               // The columns to return
+                SQLHelper.TABLE_NAME1,                     // The table to query
+                SQLHelper.projection1,                               // The columns to return
                 selection,                                // The columns for the WHERE clause
                 selectionArgs,                            // The values for the WHERE clause
                 null,                                     // don't group the rows
@@ -65,7 +66,8 @@ public class SQLManager {
 
     public void resetTable(Context context)
     {
-        db.delete(StudentIdSQLHelper.TABLE_NAME,null,null);
+        db.delete(SQLHelper.TABLE_NAME1,null,null);
+        db.delete(SQLHelper.TABLE_NAME2,null,null);
         Toast.makeText(context,"Reset Table",Toast.LENGTH_SHORT).show();
     }
 
@@ -77,7 +79,7 @@ public class SQLManager {
         values.put("studentName", studentName);
         values.put("active", 0);
 
-        db.insert(StudentIdSQLHelper.TABLE_NAME, null, values);
+        db.insert(SQLHelper.TABLE_NAME1, null, values);
     }
 
     public void addStudent(int studentId, String studentName, boolean active)
@@ -91,7 +93,7 @@ public class SQLManager {
         else
             values.put("active", 0);
 
-        db.insert(StudentIdSQLHelper.TABLE_NAME, null, values);
+        db.insert(SQLHelper.TABLE_NAME1, null, values);
     }
 
     String getStudentName(int studentId)
@@ -107,8 +109,8 @@ public class SQLManager {
         String sortOrder = "_id DESC";
 
         Cursor c = db.query(
-                StudentIdSQLHelper.TABLE_NAME,                     // The table to query
-                StudentIdSQLHelper.projection,                               // The columns to return
+                SQLHelper.TABLE_NAME1,                     // The table to query
+                SQLHelper.projection1,                               // The columns to return
                 selection,                                // The columns for the WHERE clause
                 selectionArgs,                            // The values for the WHERE clause
                 null,                                     // don't group the rows
@@ -125,8 +127,8 @@ public class SQLManager {
 
     String getCSVDatabase()
     {
-        Cursor c = db.query(StudentIdSQLHelper.TABLE_NAME,
-                StudentIdSQLHelper.projection,
+        Cursor c = db.query(SQLHelper.TABLE_NAME1,
+                SQLHelper.projection1,
                 null,
                 null,
                 null,
@@ -142,6 +144,35 @@ public class SQLManager {
                 String name = c.getString(c.getColumnIndex("studentName"));
                 int active = c.getInt(c.getColumnIndex("active"));
                 output = output.concat(id + "," + name + "," + active + "\n");
+            } while (c.moveToNext());
+            return output;
+        }
+
+        return "";
+    }
+
+    String getCSVLogDatabase()
+    {
+        Cursor c = db.query(SQLHelper.TABLE_NAME2,
+                SQLHelper.projection2,
+                null,
+                null,
+                null,
+                null,
+                "_id ASC"
+        );
+
+        if(c.getCount() > 0) {
+            String output = "_id,studentName,studentId,action,time\n";
+            c.moveToFirst();
+            do {
+                int id = c.getInt(c.getColumnIndex("_id"));
+                String name = c.getString(c.getColumnIndex("studentName"));
+                int studentId = c.getInt(c.getColumnIndex("studentId"));
+                String action = c.getString(c.getColumnIndex("action"));
+
+                String timeStamp = c.getString(c.getColumnIndex("time"));
+                output = output.concat(id + "," + name + "," + studentId + "," + action + "," + timeStamp + "\n");
             } while (c.moveToNext());
             return output;
         }
@@ -184,9 +215,9 @@ public class SQLManager {
                     values.put(projection[i++], token);
                 }
 
-                if(db.update(StudentIdSQLHelper.TABLE_NAME, values, "_id = ?", new String[]{values.getAsString("_id")}) < 1)
+                if(db.update(SQLHelper.TABLE_NAME1, values, "_id = ?", new String[]{values.getAsString("_id")}) < 1)
                 {
-                    db.insert(StudentIdSQLHelper.TABLE_NAME, null, values);
+                    db.insert(SQLHelper.TABLE_NAME1, null, values);
                     counts[0]++;
                 }
                 else
@@ -205,5 +236,16 @@ public class SQLManager {
                 ++count;
         }
         return count;
+    }
+
+    public void addLog(String studentName, int studentId, String action)
+    {
+        ContentValues values = new ContentValues();
+
+        values.put("studentId", studentId);
+        values.put("studentName", studentName);
+        values.put("action", action);
+
+        db.insert(SQLHelper.TABLE_NAME2, null, values);
     }
 }

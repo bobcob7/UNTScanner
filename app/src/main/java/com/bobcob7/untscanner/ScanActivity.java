@@ -409,6 +409,7 @@ public class ScanActivity extends AppCompatActivity {
                 }
                 break;
         }
+        scannerInput.requestFocus();
         super.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -453,7 +454,7 @@ public class ScanActivity extends AppCompatActivity {
 
     public void onSubmit(View view)
     {
-        String idText = "11113647";//scannerInput.getText().toString();
+        String idText = "11111111";//scannerInput.getText().toString();
         scannerInput.setText("");
         if(idText.length() != 8)
         {

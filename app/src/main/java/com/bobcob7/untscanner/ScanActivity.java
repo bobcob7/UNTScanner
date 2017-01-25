@@ -445,7 +445,7 @@ public class ScanActivity extends AppCompatActivity {
                 case ERROR:
                     Log.d(TAG, id + " caused an error");
                     manager.addLog("Unknown",id,"ERROR");
-                    log("ERROR,"+id+","+calendar.getTime().toString());
+                    log("ERROR,"+id+","+Calendar.getInstance().getTime().toString());
                     break;
             }
         }

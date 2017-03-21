@@ -31,10 +31,10 @@ public class SQLHelper extends SQLiteOpenHelper {
 
     private static final String TAG = "com.bobcob7.UNTScanner";
 
-    public static final int DATABASE_VERSION = 5;
+    public static final int DATABASE_VERSION = 6;
     public static final String DATABASE_NAME = "ASME.db";
 
-    private static final String SQL_CREATE_ENTRIES1 = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME1 + " ( _id INTEGER PRIMARY KEY, studentName TEXT, active INTEGER );";
+    private static final String SQL_CREATE_ENTRIES1 = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME1 + " ( _id INTEGER PRIMARY KEY, studentName TEXT, active INTEGER, lastCheckIn DATETIME);";
     private static final String SQL_CREATE_ENTRIES2 = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME2 + " ( _id INTEGER PRIMARY KEY AUTOINCREMENT, studentName TEXT, studentId INTEGER, action TEXT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP );";
 
     private static final String SQL_DELETE_ENTRIES1 = "DROP TABLE IF EXISTS " + TABLE_NAME1;

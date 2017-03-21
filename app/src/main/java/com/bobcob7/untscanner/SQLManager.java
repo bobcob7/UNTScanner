@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -57,8 +58,30 @@ public class SQLManager {
         if (c.getCount() > 0) {
             c.moveToFirst();
             int active = c.getInt(c.getColumnIndex("active"));
-            if (active > 0)
+
+
+
+            if (active > 0) {
+                ContentValues values = new ContentValues();
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date = new Date();
+                ContentValues initialValues = new ContentValues();
+                initialValues.put("lastCheckIn", dateFormat.format(date));
+
+                values.put("lastCheckIn", dateFormat.format(date));
+
+                //TODO Check that the last checkin is not that day first
+                values.put("active", ++active);
+
+                db.update(SQLHelper.TABLE_NAME1,
+                        values,
+                        selection,
+                        selectionArgs
+                );
+
                 return VALID_RETURN.GOOD;
+            }
             return VALID_RETURN.BAD;
         }
         return VALID_RETURN.UNKNOWN;
@@ -92,6 +115,11 @@ public class SQLManager {
             values.put("active", 1);
         else
             values.put("active", 0);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date();
+        ContentValues initialValues = new ContentValues();
+        initialValues.put("lastCheckIn", dateFormat.format(date));
 
         db.insert(SQLHelper.TABLE_NAME1, null, values);
     }
